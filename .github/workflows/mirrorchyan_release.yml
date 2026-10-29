@@ -20,7 +20,7 @@ jobs:
     # 若有需要请联系 Mirror酱 开通，直接自行开启是无法使用的
     # https://mirrorchyan.com/
     if: false
-    # if: ${{ github.repository_owner == 'MaaXYZ' }}
+    # if: ${{ github.repository_owner == 'MayouiY' }}
     strategy:
       fail-fast: false
       matrix:
@@ -30,14 +30,14 @@ jobs:
       - uses: MirrorChyan/uploading-action@v1
         with:
           filetype: latest-release
-          filename: ${{ format('MaaXXX-{0}-{1}-*', matrix.os, matrix.arch) }}
-          mirrorchyan_rid: MaaXXX
+          filename: ${{ format('MaaSquad-{0}-{1}-*', matrix.os, matrix.arch) }}
+          mirrorchyan_rid: MaaSquad
           tag: ${{ inputs.tag }}
 
           os: ${{ matrix.os }}
           arch: ${{ matrix.arch }}
 
-          owner: MaaXYZ
-          repo: MaaXXX
+          owner: MayouiY
+          repo: MaaSquad
           github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_token: ${{ secrets.MirrorChyanUploadToken }}

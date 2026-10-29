@@ -140,7 +140,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MaaXXX-${{ matrix.os }}-${{ matrix.arch }}
+          name: MaaSquad-${{ matrix.os }}-${{ matrix.arch }}
           path: "install"
 
   changelog:
@@ -197,7 +197,7 @@ jobs:
         # https://mirrorchyan.com/
       - name: Trigger MirrorChyanUploading
         if: false
-        # if: ${{ github.repository_owner == 'MaaXYZ' }}
+        # if: ${{ github.repository_owner == 'MayouiY' }}
         shell: bash
         run: |
           gh workflow run --repo $GITHUB_REPOSITORY mirrorchyan_release.yml -f tag=${{ needs.meta.outputs.tag }}
