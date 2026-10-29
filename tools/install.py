@@ -141,10 +141,20 @@ def install_agent():
     )
 
 
+def install_service():
+    shutil.copytree(
+        working_dir / "service",
+        install_path / "service",
+        ignore=shutil.ignore_patterns("tests", "__pycache__"),
+        dirs_exist_ok=True,
+    )
+
+
 if __name__ == "__main__":
     install_deps()
     install_resource()
     install_chores()
     install_agent()
+    install_service()
 
     print(f"Install to {install_path} successfully.")

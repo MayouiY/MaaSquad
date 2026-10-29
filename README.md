@@ -20,6 +20,17 @@ MaaSquad 是基于 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 开发
 
 提交改动前，请阅读 [PR 规范](./docs/zh_cn/develop/pull_request_guidelines.md)。
 
+## Web 调用
+
+MaaSquad 内置可开关的 HTTP API、WebSocket 与网页控制台，可在本地通过接口执行 `interface.json` 中编排好的任务：
+
+```bash
+pip install -r service/requirements.txt
+python service/main.py
+```
+
+详见 [Web 服务](./docs/zh_cn/develop/web_service.md)。
+
 ## 生态共建
 
 MAA 正计划建设为一类项目，而非舟的单一软件。

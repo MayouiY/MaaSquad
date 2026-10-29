@@ -1,0 +1,2 @@
+MaaFw
+aiohttp>=3.9
