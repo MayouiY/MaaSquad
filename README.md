@@ -35,7 +35,3 @@ MAA 正计划建设为一类项目，而非舟的单一软件。
 ## 鸣谢
 
 本项目由 **[MaaFramework](https://github.com/MaaXYZ/MaaFramework)** 强力驱动！
-
-感谢以下开发者对本项目作出的贡献:
-
-[![Contributors](https://contrib.rocks/image?repo=MayouiY/MaaSquad&max=1000)](https://github.com/MayouiY/MaaSquad/graphs/contributors)
