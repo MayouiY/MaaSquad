@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MaaSquad 控制台</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --fg:#1d2330; --muted:#6b7280; --line:#e3e6eb; --accent:#2f6fde; --ok:#1f9d55; --bad:#d64545; --warn:#c98a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171c; --card:#1d2128; --fg:#e6e8eb; --muted:#9aa3ae; --line:#2c323b; --accent:#6c9cf0; --ok:#4cc38a; --bad:#ef6b6b; --warn:#e5b544; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); background:var(--card); }
+  header h1 { font-size:16px; margin:0 auto 0 0; }
+  main { display:grid; gap:16px; padding:16px; grid-template-columns: minmax(0,1fr) minmax(0,1fr); max-width:1200px; margin:0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: minmax(0,1fr); } }
+  section { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; min-width:0; }
+  h2 { font-size:14px; margin:0 0 10px; }
+  label { display:block; color:var(--muted); font-size:12px; margin:8px 0 2px; }
+  input, select, button { font:inherit; color:inherit; }
+  input, select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); }
+  input[type=checkbox] { width:auto; }
+  button { padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.danger { color:var(--bad); }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
+  .task { border-top:1px solid var(--line); padding:8px 0; }
+  .task:first-child { border-top:0; }
+  .task-head { display:flex; gap:8px; align-items:center; font-weight:600; }
+  .opts { padding-left:24px; }
+  .pill { display:inline-block; padding:0 8px; border-radius:10px; font-size:12px; border:1px solid var(--line); }
+  .s-succeeded { color:var(--ok); } .s-failed { color:var(--bad); } .s-running { color:var(--accent); } .s-stopped, .s-cancelled, .s-skipped { color:var(--warn); }
+  #log { height:260px; overflow:auto; font:12px/1.5 ui-monospace, Consolas, monospace; background:var(--bg); border-radius:6px; padding:8px; white-space:pre-wrap; word-break:break-all; }
+  #runs { max-height:320px; overflow:auto; }
+  .run { border-top:1px solid var(--line); padding:6px 0; }
+  .muted { color:var(--muted); }
+  #shot { max-width:100%; border-radius:6px; display:none; margin-top:10px; }
+  .wide { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">MaaSquad 控制台</h1>
+  <span id="conn" class="pill">未连接</span>
+  <span id="wsState" class="pill">WebSocket 未连接</span>
+  <input id="token" type="password" placeholder="访问令牌（未设置可留空）" style="max-width:220px">
+  <button id="saveToken">保存令牌</button>
+</header>
+<main>
+  <section>
+    <h2>设备连接</h2>
+    <div class="grid2">
+      <div><label>控制器</label><select id="controller"></select></div>
+      <div><label>资源</label><select id="resource"></select></div>
+    </div>
+    <label>控制器类型</label>
+    <select id="ctype">
+      <option value="">按 interface.json</option>
+      <option value="Debug">Debug（虚拟设备，仅用于联调）</option>
+    </select>
+    <div class="grid2">
+      <div><label>ADB 路径（留空自动搜索）</label><input id="adbPath"></div>
+      <div><label>ADB 地址（如 127.0.0.1:16384）</label><input id="adbAddr"></div>
+    </div>
+    <div class="row">
+      <button class="primary" id="connect">连接</button>
+      <button id="disconnect">断开</button>
+      <button id="screenshot">截图</button>
+    </div>
+    <img id="shot" alt="设备截图">
+  </section>
+
+  <section>
+    <h2>任务</h2>
+    <div class="row" style="margin-top:0">
+      <select id="preset" style="flex:1"><option value="">— 不使用预设 —</option></select>
+      <label style="margin:0"><input type="checkbox" id="stopOnFailure"> 失败即停止</label>
+    </div>
+    <div id="tasks"></div>
+    <div class="row">
+      <button class="primary" id="run">开始执行</button>
+      <button class="danger" id="stop">停止</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>运行记录</h2>
+    <div id="runs" class="muted">暂无</div>
+  </section>
+
+  <section>
+    <h2>事件</h2>
+    <div id="log"></div>
+  </section>
+</main>
+<!--MAA_CONFIG-->
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let token = '';
+  try { token = localStorage.getItem('maa_token') || ''; } catch (e) {}
+  $('token').value = token;
+
+  let iface = null;
+  const optionState = {}; // taskName -> {optionName: value}
+
+  function log(text) {
+    const line = `[${new Date().toLocaleTimeString()}] ${text}\n`;
+    const el = $('log');
+    el.textContent += line;
+    if (el.textContent.length > 50000) el.textContent = el.textContent.slice(-40000);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function api(method, path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    const json = await res.json().catch(() => ({ ok: false, error: { message: res.statusText } }));
+    if (!json.ok) throw new Error(json.error ? json.error.message : '请求失败');
+    return json.data;
+  }
+
+  function el(tag, attrs = {}, children = []) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+    }
+    for (const c of children) e.append(c);
+    return e;
+  }
+
+  function renderOption(taskName, optName, container) {
+    const opt = iface.option[optName];
+    if (!opt) return;
+    const state = optionState[taskName];
+    const wrap = el('div');
+    wrap.append(el('label', { text: opt.label || optName }));
+    if (opt.type === 'input') {
+      state[optName] = state[optName] || {};
+      for (const input of opt.inputs) {
+        if (!(input.name in state[optName])) state[optName][input.name] = input.default || '';
+        const box = el('input', { placeholder: input.label || input.name, type: input.password ? 'password' : 'text' });
+        box.value = state[optName][input.name];
+        box.addEventListener('input', () => { state[optName][input.name] = box.value; });
+        wrap.append(box);
+      }
+    } else if (opt.type === 'checkbox') {
+      if (!(optName in state)) state[optName] = [...(opt.default_case || [])];
+      for (const c of opt.cases) {
+        const cb = el('input', { type: 'checkbox' });
+        cb.checked = state[optName].includes(c.name);
+        cb.addEventListener('change', () => {
+          state[optName] = opt.cases.map(x => x.name).filter(n => n === c.name ? cb.checked : state[optName].includes(n));
+        });
+        wrap.append(el('label', {}, [cb, ' ' + (c.label || c.name)]));
+      }
+    } else if (opt.type === 'hotkey') {
+      wrap.append(el('div', { class: 'muted', text: '快捷键选项使用默认值，可通过 API 传入' }));
+    } else {
+      if (!(optName in state)) state[optName] = opt.default_case || opt.cases[0].name;
+      const sel = el('select');
+      for (const c of opt.cases) sel.append(el('option', { value: c.name, text: c.label || c.name }));
+      sel.value = state[optName];
+      const sub = el('div', { class: 'opts' });
+      const renderSub = () => {
+        sub.replaceChildren();
+        const c = opt.cases.find(x => x.name === sel.value);
+        for (const s of (c && c.option) || []) renderOption(taskName, s, sub);
+      };
+      sel.addEventListener('change', () => { state[optName] = sel.value; renderSub(); });
+      wrap.append(sel, sub);
+      renderSub();
+    }
+    container.append(wrap);
+  }
+
+  function renderTasks() {
+    const box = $('tasks');
+    box.replaceChildren();
+    for (const t of iface.task) {
+      optionState[t.name] = optionState[t.name] || {};
+      const cb = el('input', { type: 'checkbox', 'data-task': t.name });
+      cb.checked = !!t.default_check;
+      const opts = el('div', { class: 'opts' });
+      for (const o of t.option) renderOption(t.name, o, opts);
+      box.append(el('div', { class: 'task' }, [el('div', { class: 'task-head' }, [cb, t.label || t.name]), opts]));
+    }
+  }
+
+  function renderRuns(runs) {
+    const box = $('runs');
+    if (!runs.length) { box.textContent = '暂无'; box.className = 'muted'; return; }
+    box.className = '';
+    box.replaceChildren(...runs.map(r => {
+      const tasks = r.tasks.map(t => el('div', { class: 'opts' }, [
+        el('span', { class: 's-' + t.status, text: `● ${t.name}` }), el('span', { class: 'muted', text: ` ${t.status}` })]));
+      const head = el('div', {}, [el('span', { class: 's-' + r.status, text: r.status }),
+        el('span', { class: 'muted', text: ` #${r.id} · ${r.source} · ${new Date(r.created_at * 1000).toLocaleTimeString()}` })]);
+      if (r.status === 'queued' || r.status === 'running') {
+        head.append(' ', el('button', { text: '取消', onclick: () => api('POST', `/api/runs/${r.id}/cancel`).catch(e => log('取消失败: ' + e.message)) }));
+      }
+      return el('div', { class: 'run' }, [head, ...tasks]);
+    }));
+  }
+
+  async function refreshRuns() { try { renderRuns(await api('GET', '/api/runs')); } catch (e) {} }
+
+  function renderStatus(s) {
+    $('conn').textContent = s.connected ? `已连接 · ${s.controller} / ${s.resource}` : '未连接';
+    $('conn').className = 'pill ' + (s.connected ? 's-succeeded' : '');
+  }
+
+  async function init() {
+    try {
+      iface = await api('GET', '/api/interface');
+    } catch (e) {
+      log('加载失败: ' + e.message + '（如已设置令牌，请在右上角填写）');
+      return;
+    }
+    $('title').textContent = `${iface.name} ${iface.version} 控制台`;
+    document.title = $('title').textContent;
+    $('controller').replaceChildren(...iface.controller.map(c => el('option', { value: c.name, text: `${c.label} (${c.type})` })));
+    const fillResources = () => {
+      const ctrl = $('controller').value;
+      $('resource').replaceChildren(...iface.resource.filter(r => !r.controller || r.controller.includes(ctrl)).map(r => el('option', { value: r.name, text: r.label })));
+    };
+    $('controller').addEventListener('change', fillResources);
+    fillResources();
+    $('preset').replaceChildren(el('option', { value: '', text: '— 不使用预设 —' }), ...iface.preset.map(p => el('option', { value: p.name, text: p.label })));
+    renderTasks();
+    renderStatus(await api('GET', '/api/status'));
+    refreshRuns();
+    connectWs();
+  }
+
+  let ws = null;
+  function connectWs() {
+    const wsInfo = window.MAA_WS;
+    if (!wsInfo) { $('wsState').textContent = 'WebSocket 未开启'; return; }
+    if (ws && ws.readyState <= 1) return;
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const url = `${proto}://${location.hostname}:${wsInfo.port}${wsInfo.path}` + (token ? `?token=${encodeURIComponent(token)}` : '');
+    try { ws = new WebSocket(url); } catch (e) { return; }
+    ws.onopen = () => { $('wsState').textContent = 'WebSocket 已连接'; $('wsState').className = 'pill s-succeeded'; };
+    ws.onclose = () => {
+      $('wsState').textContent = 'WebSocket 未连接'; $('wsState').className = 'pill';
+      setTimeout(connectWs, 3000);
+    };
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data);
+      if (msg.type !== 'event') return;
+      if (msg.event === 'status') renderStatus(msg.data);
+      else if (msg.event === 'run') { refreshRuns(); if (['succeeded', 'failed', 'stopped', 'cancelled'].includes(msg.data.status)) log(`运行 #${msg.data.id} ${msg.data.status}`); }
+      else if (msg.event === 'maa') log(`${msg.data.msg}  ${msg.data.details.name || msg.data.details.entry || ''}`);
+    };
+  }
+
+  $('saveToken').onclick = () => {
+    token = $('token').value.trim();
+    try { localStorage.setItem('maa_token', token); } catch (e) {}
+    if (ws) ws.close();
+    init();
+  };
+
+  $('connect').onclick = async () => {
+    const body = { controller: $('controller').value, resource: $('resource').value };
+    if ($('ctype').value) body.controller_type = $('ctype').value;
+    if ($('adbPath').value || $('adbAddr').value) body.adb = { path: $('adbPath').value, address: $('adbAddr').value };
+    $('connect').disabled = true;
+    log('正在连接…');
+    try { renderStatus(await api('POST', '/api/connect', body)); log('连接成功'); }
+    catch (e) { log('连接失败: ' + e.message); }
+    finally { $('connect').disabled = false; }
+  };
+  $('disconnect').onclick = async () => {
+    try { renderStatus(await api('POST', '/api/disconnect')); } catch (e) { log('断开失败: ' + e.message); }
+  };
+  $('screenshot').onclick = async () => {
+    const headers = token ? { Authorization: 'Bearer ' + token } : {};
+    const res = await fetch('/api/screenshot', { headers });
+    if (!res.ok) { const j = await res.json().catch(() => ({})); log('截图失败: ' + (j.error ? j.error.message : res.statusText)); return; }
+    const img = $('shot');
+    if (img.src) URL.revokeObjectURL(img.src);
+    img.src = URL.createObjectURL(await res.blob());
+    img.style.display = 'block';
+  };
+  $('run').onclick = async () => {
+    const body = { stop_on_failure: $('stopOnFailure').checked };
+    if ($('preset').value) body.preset = $('preset').value;
+    else {
+      body.tasks = [...document.querySelectorAll('[data-task]')].filter(c => c.checked)
+        .map(c => ({ name: c.dataset.task, option: optionState[c.dataset.task] }));
+      if (!body.tasks.length) { log('请至少勾选一个任务'); return; }
+    }
+    try { const r = await api('POST', '/api/runs', body); log(`已提交运行 #${r.id}`); refreshRuns(); }
+    catch (e) { log('提交失败: ' + e.message); }
+  };
+  $('stop').onclick = async () => {
+    try { await api('POST', '/api/stop'); log('已请求停止'); } catch (e) { log('停止失败: ' + e.message); }
+  };
+
+  init();
+})();
+</script>
+</body>
+</html>

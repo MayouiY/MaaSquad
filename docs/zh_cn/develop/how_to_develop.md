@@ -84,3 +84,5 @@
 ## 更多操作
 
 请参考 [个性化配置](./custom_configure.md)（可选）。
+
+如需通过 HTTP / WebSocket 调用任务，请参考 [Web 服务](./web_service.md)。
