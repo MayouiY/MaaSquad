@@ -1,0 +1,28 @@
+# 详见 docs/zh_cn/develop/custom_configure.md
+repos:
+  - repo: https://github.com/shssoichiro/oxipng
+    rev: v9.1.2
+    hooks:
+      - id: oxipng
+        args: ["-q", "-o", "2", "-s", "--ng"]
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.13.0
+    hooks:
+      - id: markdownlint-cli2
+        files: ^docs/.*|^README\.md$
+        types:
+          - markdown
+        args: ["--fix", "--config", "docs/.markdownlint.yaml", "#**/node_modules"]
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or:
+          - yaml
+          - json
+        additional_dependencies:
+          - prettier@3.3.3
+          - prettier-plugin-multiline-arrays@3.0.6
+        exclude: ^(deps/tools/|assets/MaaCommonAssets/|pnpm-lock\.yaml$|package-lock\.json$)
