@@ -66,6 +66,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
             # 留空则按 interface.json 中的 class_regex / window_regex 查找窗口
             "class_regex": "",
             "window_regex": "",
+            # 留空则使用 interface.json 中的截图 / 鼠标 / 键盘方式，例如在 Wine 中改用 "GDI" 截图
+            "screencap": "",
+            "mouse": "",
+            "keyboard": "",
         },
         "agent": {
             # interface.json 配置了 agent 时，是否随服务一起启动

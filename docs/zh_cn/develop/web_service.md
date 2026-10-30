@@ -74,7 +74,7 @@
         "resource": "",         // 默认资源名称
         "auto_connect": false,  // 启动后立即连接；开启后未连接时提交任务也会自动连接
         "adb": { "path": "", "address": "", "config": {} },
-        "win32": { "class_regex": "", "window_regex": "" },
+        "win32": { "class_regex": "", "window_regex": "", "screencap": "", "mouse": "", "keyboard": "" },
         "agent": { "enabled": true, "timeout": 30000 },
         "history_limit": 100
     }
@@ -135,11 +135,12 @@
     "resource": "官服",                // interface.json 中的资源名称
     "adb": { "path": "C:/adb.exe", "address": "127.0.0.1:16384" },  // 留空则自动搜索
     "win32": { "hwnd": 123456 },       // 留空则按 interface.json 的正则查找窗口
+                                       // 也可传 window_regex / class_regex，以及 screencap / mouse / keyboard 覆盖截图与输入方式
     "controller_type": "Debug"         // 可选：使用虚拟设备联调
 }
 ```
 
-目前支持 `Adb`、`Win32` 类型的控制器以及用于联调的 `Debug`。
+目前支持 `Adb`、`Win32` 类型的控制器以及用于联调的 `Debug`。`win32` 中的 `screencap` / `mouse` / `keyboard` 取值为 [控制方式](https://maafw.xyz/docs/2.4-ControlMethods) 的名称（如 `GDI`、`PostMessage`），留空时使用 `interface.json` 中的配置。
 
 ### 提交任务
 
@@ -278,3 +279,5 @@ python -m unittest discover -s service/tests -v
 ```
 
 测试使用真实的 MaaFramework 和虚拟设备，覆盖 HTTP、WebSocket、令牌校验、服务开关与 Agent 子进程，CI（`check.yml`）中也会运行。
+
+在 Windows 环境（Wine）中运行测试、用真实窗口测试 `Win32` 控制器，请参考 [本地测试环境](./test_env.md)。

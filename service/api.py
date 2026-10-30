@@ -43,6 +43,8 @@ class Api:
         deadline = loop.time() + (timeout if timeout is not None else MAX_WAIT_SECONDS)
         while not run.done.is_set() and loop.time() < deadline:
             await asyncio.sleep(0.1)
+        # 运行时在结束前已把最终事件排入事件循环，让出一次，使事件先于响应发给 WebSocket 客户端
+        await asyncio.sleep(0)
 
     def close(self) -> None:
         self._pool.shutdown(wait=False, cancel_futures=True)

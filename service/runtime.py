@@ -461,8 +461,9 @@ class MaaRuntime:
         for t in run.tasks:
             if t.status == "pending":
                 t.status = "skipped"
-        run.done.set()
+        # 先发出事件再标记结束，保证等待中的请求（wait=true）返回时，最终状态事件已经排在响应之前
         self.emit("run", run.to_dict())
+        run.done.set()
 
     def _work(self) -> None:
         while True:

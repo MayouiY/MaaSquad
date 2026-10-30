@@ -21,6 +21,9 @@ from runtime import MaaRuntime  # noqa: E402
 from server import EventHub, WebService  # noqa: E402
 from settings import DEFAULT_SETTINGS, SettingsError, validate_settings  # noqa: E402
 
+# Windows 上 MaaFramework 会一直占用 debug/maafw.log，日志不能写进每个用例的临时目录，否则清理时报共享冲突
+LOG_DIR = Path(tempfile.gettempdir()) / "maasquad-service-tests"
+
 PIPELINE = {
     "Quick": {"post_delay": 0},
     # 纯黑截图上永远找不到该颜色，节点会一直重试直到超时或被停止
@@ -76,7 +79,7 @@ class ServiceTestBase(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         base = Path(self.tmp.name)
-        Toolkit.init_option(str(base))
+        Toolkit.init_option(str(LOG_DIR))
         self.pi = ProjectInterface(make_interface(base, self.with_agent))
         self.conf = self.settings()
         self.hub = EventHub()
@@ -252,6 +255,31 @@ class WebSocketTest(ServiceTestBase):
             await ws.send_json({"id": 8, "method": "screenshot"})
             await read_until(lambda: 8 in responses)
             self.assertEqual(responses[8]["data"]["format"], "png")
+
+    async def test_final_event_before_wait_response(self):
+        """wait=true 的响应必须排在该运行的最终事件之后，即使事件发出得慢（如 Wine 中的线程调度）。"""
+        emit = self.runtime.emit
+
+        def slow_emit(event, data):
+            if event == "run" and data["status"] == "succeeded":
+                time.sleep(0.3)
+            emit(event, data)
+
+        self.runtime.emit = slow_emit
+        async with self.session.ws_connect(self.url("/ws", "websocket")) as ws:
+            await ws.receive_json()  # hello
+            await ws.send_json({"id": 1, "method": "connect", "params": {"controller_type": "Debug"}})
+            while (await asyncio.wait_for(ws.receive_json(), 20)).get("id") != 1:
+                pass
+            await ws.send_json({"id": 2, "method": "run", "params": {"tasks": ["快速任务"], "wait": True}})
+            statuses = []
+            while True:
+                msg = await asyncio.wait_for(ws.receive_json(), 20)
+                if msg["type"] == "event" and msg["event"] == "run":
+                    statuses.append(msg["data"]["status"])
+                elif msg["type"] == "response" and msg["id"] == 2:
+                    break
+            self.assertEqual(statuses[-1], "succeeded")
 
 
 class AuthTest(ServiceTestBase):
