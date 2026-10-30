@@ -31,6 +31,17 @@ python service/main.py
 
 详见 [Web 服务](./docs/zh_cn/develop/web_service.md)。
 
+## 本地测试环境
+
+可以直接在 Linux 实例上启动测试环境：除了 Linux 原生环境，还会用 Wine 搭建一个运行 Windows 版 MaaFramework 的「Windows 测试机」，测试桌面端（Win32）控制器与 Windows 下的行为：
+
+```bash
+testenv/testenv.sh deps   # 安装 Python、Wine、Xvfb 等系统依赖（apt）
+testenv/testenv.sh all    # 搭建两套环境并运行全部测试
+```
+
+详见 [本地测试环境](./docs/zh_cn/develop/test_env.md)。
+
 ## 生态共建
 
 MAA 正计划建设为一类项目，而非舟的单一软件。

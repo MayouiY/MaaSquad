@@ -1,0 +1,8 @@
+# Linux 测试环境（.testenv/venv）的依赖，由 testenv/testenv.sh setup 安装
+-r ../service/requirements.txt
+-r ../tools/requirements.txt
+# 与 CI（.github/workflows/check.yml）中的版本保持一致
+jsonschema==4.26.0
+referencing==0.37.0
+# 调试控制器加载截图需要
+pillow

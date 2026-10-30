@@ -452,3 +452,5 @@ tools/ImageCropper/**/*.png
 
 config
 debug
+# 本地测试环境（testenv/testenv.sh）
+.testenv/

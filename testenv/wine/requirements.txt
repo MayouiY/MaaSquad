@@ -1,0 +1,10 @@
+# Wine 中 Windows 版 Python 的依赖。
+# testenv/testenv.sh wine-setup 会先在宿主机下载 win_amd64 的 wheel，再在 Wine 中离线安装。
+-r ../../service/requirements.txt
+pillow
+# pip download 按宿主机的 Python 版本计算环境标记，目标版本需要的依赖要显式列出
+typing_extensions
+# numpy>=2.1 的 Windows 版调用了 ucrtbase.crealf，Wine 9 尚未实现，导入即崩溃
+numpy==2.0.2
+# Wine 自带的 concrt140 缺少 MaaFramework 用到的函数，改用微软原版 VC++ 运行库（需配合 DLL 覆盖）
+msvc-runtime

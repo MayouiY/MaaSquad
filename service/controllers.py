@@ -141,11 +141,14 @@ def _create_win32(ctrl: dict[str, Any], win32: dict[str, Any]) -> Controller:
             raise ControllerError(f"未找到匹配的窗口 class_regex={class_regex!r} window_regex={window_regex!r}")
         hwnd = windows[0].hwnd
 
+    screencap = win32.get("screencap") or conf.get("screencap")
+    mouse = win32.get("mouse") or conf.get("mouse")
+    keyboard = win32.get("keyboard") or conf.get("keyboard")
     return Win32Controller(
         hwnd,
-        screencap_method=_win32_enum(MaaWin32ScreencapMethodEnum, conf.get("screencap"), MaaWin32ScreencapMethodEnum.Background),
-        mouse_method=_win32_enum(MaaWin32InputMethodEnum, conf.get("mouse"), MaaWin32InputMethodEnum.Seize),
-        keyboard_method=_win32_enum(MaaWin32InputMethodEnum, conf.get("keyboard"), MaaWin32InputMethodEnum.Seize),
+        screencap_method=_win32_enum(MaaWin32ScreencapMethodEnum, screencap, MaaWin32ScreencapMethodEnum.Background),
+        mouse_method=_win32_enum(MaaWin32InputMethodEnum, mouse, MaaWin32InputMethodEnum.Seize),
+        keyboard_method=_win32_enum(MaaWin32InputMethodEnum, keyboard, MaaWin32InputMethodEnum.Seize),
     )
 
 

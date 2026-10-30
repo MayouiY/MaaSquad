@@ -1,0 +1,14 @@
+{
+    "security": {
+        "allow_raw_entry": true
+    },
+    "maa": {
+        "controller": "桌面端",
+        "win32": {
+            "window_regex": "^MaaSquad Test Target$",
+            "screencap": "GDI",
+            "mouse": "PostMessage",
+            "keyboard": "PostMessage"
+        }
+    }
+}

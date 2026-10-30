@@ -1,0 +1,6 @@
+# testenv/Dockerfile 专用（BuildKit），构建镜像只需要 testenv/ 与依赖清单
+*
+!testenv/
+!service/requirements.txt
+!tools/requirements.txt
+**/__pycache__
